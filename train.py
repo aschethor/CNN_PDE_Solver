@@ -51,9 +51,10 @@ mask[:,:,:,0:5]=1
 mask[:,:,:,w-5:w]=1
 mask[:,:,(h//2-10):(h//2+10),(w//3-5):(w//3+5)] = 1
 
+v = 1
 v_cond = torch.zeros([1,2,h,w]).cuda()
-v_cond[:,1,10:(h-10),0:5]=1
-v_cond[:,1,10:(h-10),w-5:w]=1
+v_cond[:,1,10:(h-10),0:5]=v
+v_cond[:,1,10:(h-10),w-5:w]=v
 
 pde_cnn = PDE_CNN().cuda()
 optimizer = Adam(pde_cnn.parameters(),lr=0.00005)#0.000002)
@@ -61,7 +62,7 @@ optimizer = Adam(pde_cnn.parameters(),lr=0.00005)#0.000002)
 mu = 3
 rho = 1
 alpha=200*100
-beta=150*30#0#150
+beta=15*3#0#150
 
 v_old = torch.zeros([1,2,h,w]).cuda()
 p_old = torch.zeros([1,1,h,w]).cuda()
