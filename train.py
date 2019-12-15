@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.optim import Adam
+import numpy as np
 import matplotlib.pyplot as plt
 
 class PDE_CNN(nn.Module):
@@ -9,7 +10,7 @@ class PDE_CNN(nn.Module):
 	def __init__(self):
 		super().__init__()
 		self.conv1 = nn.Conv2d(6,10,kernel_size=[3,3],padding=[1,1])
-		self.conv2 = nn.Conv2d(10,10,kernel_size=[5,5],padding=[2,2])
+		self.conv2 = nn.Conv2d(10,10,kernel_size=[7,7],padding=[3,3])
 		self.conv3 = nn.Conv2d(10,3,kernel_size=[3,3],padding=[1,1])
 	
 	def forward(self,v_old,p_old,mask,v_cond):
@@ -43,19 +44,6 @@ print(f"laplace(v):{laplace(v)}")
 
 #Attention: x/y are swapped (x-dimension=1; y-dimension=0)
 
-w,h = 300,100
-mask = torch.zeros([1,1,h,w]).cuda()
-mask[:,:,0,:]=1
-mask[:,:,h-1,:]=1
-mask[:,:,:,0:5]=1
-mask[:,:,:,w-5:w]=1
-mask[:,:,(h//2-10):(h//2+10),(w//3-5):(w//3+5)] = 1
-
-v = 1
-v_cond = torch.zeros([1,2,h,w]).cuda()
-v_cond[:,1,10:(h-10),0:5]=v
-v_cond[:,1,10:(h-10),w-5:w]=v
-
 pde_cnn = PDE_CNN().cuda()
 optimizer = Adam(pde_cnn.parameters(),lr=0.00005)#0.000002)
 
@@ -66,6 +54,21 @@ beta=15*3#0#150
 
 for i in range(100):
 	
+	w,h = 300,100#TODO: generate batch of multiple instances
+	x_disp = np.random.randint(-20,20)
+	y_disp = np.random.randint(-10,10)
+	mask = torch.zeros([1,1,h,w]).cuda()
+	mask[:,:,0,:]=1
+	mask[:,:,h-1,:]=1
+	mask[:,:,:,0:5]=1
+	mask[:,:,:,w-5:w]=1
+	mask[:,:,(h//2-10+y_disp):(h//2+10+y_disp),(w//3-5+x_disp):(w//3+5+x_disp)] = 1
+
+	v = 1+torch.randn(1)
+	v_cond = torch.zeros([1,2,h,w]).cuda()
+	v_cond[:,1,10:(h-10),0:5]=v
+	v_cond[:,1,10:(h-10),w-5:w]=v
+
 	v_old = torch.zeros([1,2,h,w]).cuda()
 	p_old = torch.zeros([1,1,h,w]).cuda()
 
@@ -93,23 +96,19 @@ for i in range(100):
 			print(f"{i}: t:{t}: loss: {loss.detach().cpu().numpy()}; loss_bound: {loss_bound.detach().cpu().numpy()}; loss_cont: {loss_cont.detach().cpu().numpy()}; loss_nav: {loss_nav.detach().cpu().numpy()};")
 
 	plt.figure(1)
-	#plt.imshow(mask[0,0].cpu().numpy())
 	plt.imshow((v_new)[0,1].cpu().detach().numpy())
-	#plt.imshow(((1-mask)*p_old)[0,0].cpu().detach().numpy())
-
+	plt.draw()
+	plt.pause(0.001)
+	
 	plt.figure(2)
-	#plt.imshow(mask[0,0].cpu().numpy())
 	plt.imshow((v_new)[0,0].cpu().detach().numpy())
-	#plt.imshow(((1-mask)*p_old)[0,0].cpu().detach().numpy())
-
+	plt.draw()
+	plt.pause(0.001)
+	
 	plt.figure(3)
 	loss_cont = (1-mask)*(dx(v_new[:,1:2])+dy(v_new[:,0:1]))**2
 	plt.imshow((torch.log(loss_cont))[0,0].cpu().detach().numpy())
-
-	#plt.figure(4)
-	#loss_bound = mask*(v_new-v_cond)**2
-	#plt.imshow((loss_bound)[0,0].cpu().detach().numpy())
-
 	plt.draw()
 	plt.pause(0.001)
 
+input("end program...")
