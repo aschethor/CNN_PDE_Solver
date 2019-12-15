@@ -64,11 +64,11 @@ rho = 1
 alpha=200*100
 beta=15*3#0#150
 
-v_old = torch.zeros([1,2,h,w]).cuda()
-p_old = torch.zeros([1,1,h,w]).cuda()
-
-for i in range(20):
+for i in range(100):
 	
+	v_old = torch.zeros([1,2,h,w]).cuda()
+	p_old = torch.zeros([1,1,h,w]).cuda()
+
 	for t in range(10000):
 		v_new,p_new = pde_cnn(v_old,p_old,mask,v_cond)
 		v_new = mask*v_cond+(1-mask)*v_new
