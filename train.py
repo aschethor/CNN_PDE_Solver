@@ -61,7 +61,7 @@ optimizer = Adam(pde_cnn.parameters(),lr=0.00005)#0.000002)
 
 mu = 3
 rho = 1
-alpha=200*100
+alpha=200*1000
 beta=15*3#0#150
 
 v_old = torch.zeros([1,2,h,w]).cuda()
