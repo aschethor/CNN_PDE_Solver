@@ -61,7 +61,7 @@ optimizer = Adam(pde_cnn.parameters(),lr=0.00005)#0.000002)
 
 mu = 3
 rho = 1
-alpha=200*1000
+alpha=200*100
 beta=15*3#0#150
 
 v_old = torch.zeros([1,2,h,w]).cuda()
@@ -104,7 +104,7 @@ for i in range(20):
 
 	plt.figure(3)
 	loss_cont = (1-mask)*(dx(v_new[:,1:2])+dy(v_new[:,0:1]))**2
-	plt.imshow((loss_cont)[0,0].cpu().detach().numpy())
+	plt.imshow((torch.log(loss_cont))[0,0].cpu().detach().numpy())
 
 	#plt.figure(4)
 	#loss_bound = mask*(v_new-v_cond)**2
