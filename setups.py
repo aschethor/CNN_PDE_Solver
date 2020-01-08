@@ -1,81 +1,74 @@
 import torch
 import numpy as np
 
-class setups:
-	def __init__(self,h,w,batch_size):
-		self.h, self.w = h,w
-		self.batch_size = batch_size
-		
-		object_h = np.random.randint(-5,20,batch_size)+10
-		object_w = np.random.randint(-5,20,batch_size)+10
-		object_h[0],object_w[0] = 10,5
-		
-		x_disp = np.random.randint(-20,20,batch_size)
-		y_disp = np.random.randint(-10,10,batch_size)
-		x_disp[0],y_disp[0] = 0,0
-		
-		self.mask = torch.zeros([batch_size,1,h,w]).cuda()
-		self.mask[:,:,0,:]=1
-		self.mask[:,:,h-1,:]=1
-		self.mask[:,:,:,0:5]=1
-		self.mask[:,:,:,w-5:w]=1
-		for i in range(batch_size):
-			self.mask[i,:,(h//2-object_h[i]+y_disp[i]):(h//2+object_h[i]+y_disp[i]),(w//3-object_w[i]+x_disp[i]):(w//3+object_w[i]+x_disp[i])] = 1
-		
-		#v = np.ones(batch_size)+0.8*np.random.randn(batch_size)
-		v = np.ones(batch_size)+0.9*np.random.rand(batch_size)
-		v[0] = 1
-		v = v*3#0.1#10 (on /2019-12-18 14:17:34/1.state) showed something that resembled a von karman vortex street
-		self.v_cond = torch.zeros([batch_size,2,h,w]).cuda()
-		for i in range(batch_size):
-			self.v_cond[i,1,10:(h-10),0:5]=v[i]
-			self.v_cond[i,1,10:(h-10),w-5:w]=v[i]
-		
-	
-	def get(self):
-		"""
-		return a batch of setups
-		(could change over time)
-		"""
-		return self.mask,self.v_cond
-		
-class setup:
-	def __init__(self,h,w):
-		self.h,self.w = h,w
-		self.mask = torch.zeros([1,1,h,w]).cuda()
-		self.mask[:,:,0,:]=1
-		self.mask[:,:,h-1,:]=1
-		self.mask[:,:,:,0:5]=1
-		self.mask[:,:,:,w-5:w]=1
-		
-		v = 3*2*(np.random.rand()-0.5)
-		#TODO: define outflow boundary conditions
-		self.v_cond = torch.zeros([1,2,h,w]).cuda()
-		self.v_cond[:,1,10:(h-10),0:5]=v
-		self.v_cond[:,1,10:(h-10),w-5:w]=v
-	
-	def get(self):
-		return self.mask,self.v_cond
+"""
+ask-tell interface:
+ask(): ask for batch of v_cond(t),cond_mask(t),flow_mask(t),v(t),p(t)
+tell(v,p): tell results for v(t+1),p(t+1) of batch
+"""
 
-def make_static_setup(self,h,w):
-	object_h = np.random.randint(5,20) # object height / 2
-	object_w = np.random.randint(5,20) # object width / 2
-	object_x = np.random.randint(w//4-10,w//4+10)
-	object_y = np.random.randint(h//2-10,h//2+10)
+class Dataset:
+	def __init__(self,w,h,batch_size=100,dataset_size=1000):
+		self.h,self.w = h,w
+		self.batch_size = batch_size
+		self.dataset_size = dataset_size
+		self.v = torch.zeros(dataset_size,2,h,w)
+		self.p = torch.zeros(dataset_size,1,h,w)
+		self.v_cond = torch.zeros(dataset_size,2,h,w)# one could also think about p_cond...
+		self.cond_mask = torch.zeros(dataset_size,1,h,w)
+		self.flow_mask = torch.zeros(dataset_size,1,h,w)
+		
+		for i in range(dataset_size):
+			self.reset_env(i)
+		
+		self.t = 0
 	
-	inflow_v = 3*2*(np.random.rand()-0.5)
+	def reset_env(self,index):
+		#CODO: add more different environemts
+		self.v[index,:,:,:] = 0
+		self.p[index,:,:,:] = 0
+		
+		self.cond_mask[index,:,:,:]=0
+		self.cond_mask[index,:,0:3,:]=1
+		self.cond_mask[index,:,(self.h-3):self.h,:]=1
+		self.cond_mask[index,:,:,0:5]=1
+		self.cond_mask[index,:,:,(self.w-5):self.w]=1
+		
+		if np.random.rand()<0.5:
+			object_h = np.random.randint(5,20) # object height / 2
+			object_w = np.random.randint(5,20) # object width / 2
+			flow_v = 3*(np.random.rand()-0.5)*2
+			object_y = np.random.randint(self.h//2-10,self.h//2+10)
+			if flow_v>0:
+				object_x = np.random.randint(self.w//4-10,self.w//4+10)
+			else:
+				object_x = np.random.randint(3*self.w//4-10,3*self.w//4+10)
+			
+			self.cond_mask[index,:,(object_y-object_h):(object_y+object_h),(object_x-object_w):(object_x+object_w)] = 1
+			self.v_cond[index,1,10:(self.h-10),0:5]=flow_v
+			self.v_cond[index,1,10:(self.h-10),(self.w-5):self.w]=flow_v
+			
+		else:
+			flow_v = 3*(np.random.rand()-0.5)*2
+			self.v_cond[index,1,10:(self.h//4),0:5]=flow_v
+			self.v_cond[index,1,(3*self.h//4):(self.h-10),(self.w-5):self.w]=flow_v
+			self.cond_mask[index,:,(self.h//3-2):(self.h//3+2),0:(3*self.w//4)] = 1
+			self.cond_mask[index,:,(2*self.h//3-2):(2*self.h//3+2),(self.w//4):self.w] = 1
+		
+		self.flow_mask[index,:,:,:] = 1-self.cond_mask[index,:,:,:]
 	
-	cond_mask = torch.zeros([1,1,h,w]).cuda()
-	cond_mask[:,:,0,:]=1
-	cond_mask[:,:,h-1,:]=1
-	cond_mask[:,:,:,0:5]=1
+	def ask(self):
+		self.indices = np.random.choice(self.dataset_size,self.batch_size)
+		return self.v_cond[self.indices],self.cond_mask[self.indices],self.flow_mask[self.indices],self.v[self.indices],self.p[self.indices]
 	
-	cond_mask[:,:,(object_y-object_h):(object_y+object_h),(object_x-object_w):(object_x+object_w)] = 1
-	
-	flow_mask = 1-cond_mask
-	flow_mask[:,:,:,w-5:w] = 0
-	
-	v_cond = torch.zeros([1,2,h,w]).cuda()
-	v_cond[:,1,10:(h-10),0:5]=inflow_v
-	
-	return v_cond,cond_mask,flow_mask
+	def tell(self,v,p):
+		self.v[self.indices,:,:,:] = v.detach()
+		self.p[self.indices,:,:,:] = p.detach()
+		
+		self.t += 1
+		if self.t % 20000/self.batch_size == 0:#ca x*batch_size steps until env gets reset
+			i = (self.t/2)%self.dataset_size
+			self.reset_env(int(i))
+
+
+
