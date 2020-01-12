@@ -1,5 +1,17 @@
 import torch
 from torch import nn
+import get_param
+params = get_param.params()
+
+def toCuda(x):
+	if type(x) is tuple:
+		return [xi.cuda() if params.cuda else xi for xi in x]
+	return x.cuda() if params.cuda else x
+
+def toCpu(x):
+	if type(x) is tuple:
+		return [xi.detach().cpu() for xi in x]
+	return x.detach().cpu()
 
 class PDE_UNet(nn.Module):
 	

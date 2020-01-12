@@ -6,9 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from derivatives import dx,dy,laplace
 from setups import setups
-import sys
-sys.path.insert(0, '/home/bigboy/Nils/Pytorch/Projects/Library')
-sys.path.insert(0, '../Library')
 from Logger import Logger,t_step
 
 torch.manual_seed(0)

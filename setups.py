@@ -6,6 +6,7 @@ ask-tell interface:
 ask(): ask for batch of v_cond(t),cond_mask(t),flow_mask(t),v(t),p(t)
 tell(v,p): tell results for v(t+1),p(t+1) of batch
 """
+#Attention: x/y are swapped (x-dimension=1; y-dimension=0)
 
 class Dataset:
 	def __init__(self,w,h,batch_size=100,dataset_size=1000):

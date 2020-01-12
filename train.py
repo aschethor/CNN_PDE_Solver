@@ -8,26 +8,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from derivatives import dx,dy,laplace
 from setups import Dataset
-import sys
-sys.path.insert(0, '/home/bigboy/Nils/Pytorch/Projects/Library')
-sys.path.insert(0, '../Library')
 from Logger import Logger,t_step
-from pde_cnn import PDE_UNet
+from pde_cnn import PDE_UNet,toCuda,toCpu,params
 
 torch.manual_seed(0)
 np.random.seed(0)
 
-print(f"Parameters: {params}")
-
-#Attention: x/y are swapped (x-dimension=1; y-dimension=0)
-
-def toCuda(x):
-	if type(x) is tuple:
-		return [xi.cuda() if params.cuda else xi for xi in x]
-	return x.cuda() if params.cuda else x
-
-def toCpu(x):
-	return x.detach().cpu()
+print(f"Parameters: {vars(params)}")
 
 pde_cnn = toCuda(PDE_UNet())
 optimizer = Adam(pde_cnn.parameters(),lr=params.lr)
@@ -37,14 +24,15 @@ rho = params.rho
 
 logger = Logger(get_param.get_hyperparam(params),use_csv=False,use_tensorboard=params.log)
 if params.load_latest or params.load_date_time is not None or params.load_index is not None:
-	load_logger = Logger(get_param.get_load_hyperparam(params),use_csv=False,use_tensorboard=False)
+	load_logger = Logger(get_param.get_hyperparam(params),use_csv=False,use_tensorboard=False)
 	params.load_date_time, params.load_index = logger.load_state(pde_cnn,optimizer,params.load_date_time,params.load_index)
 	params.load_index=int(params.load_index)
 	print(f"loaded: {params.load_date_time}, {params.load_index}")
+params.load_index = 0 if params.load_index is None else params.load_index
 
 dataset = Dataset(params.width,params.height,params.batch_size)
 
-for epoch in range(params.n_epochs):
+for epoch in range(params.load_index,params.n_epochs):
 
 	for i in range(params.n_batches_per_epoch):
 		v_cond,cond_mask,flow_mask,v_old,p_old = toCuda(dataset.ask())
@@ -75,12 +63,13 @@ for epoch in range(params.n_epochs):
 		loss_cont = toCpu(torch.mean(loss_cont)).numpy()
 		loss_nav = toCpu(torch.mean(loss_nav)).numpy()
 		
-		logger.log("loss",loss,epoch*params.n_batches_per_epoch+i)
-		logger.log("loss_bound",loss_bound,epoch*params.n_batches_per_epoch+i)
-		logger.log("loss_cont",loss_cont,epoch*params.n_batches_per_epoch+i)
-		logger.log("loss_nav",loss_nav,epoch*params.n_batches_per_epoch+i)
+		if i%10 == 0:
+			logger.log("loss",loss,epoch*params.n_batches_per_epoch+i)
+			logger.log("loss_bound",loss_bound,epoch*params.n_batches_per_epoch+i)
+			logger.log("loss_cont",loss_cont,epoch*params.n_batches_per_epoch+i)
+			logger.log("loss_nav",loss_nav,epoch*params.n_batches_per_epoch+i)
 		
-		if i%100==0:
+		if i%100 == 0:
 			print(f"{epoch}: i:{i}: loss: {loss}; loss_bound: {loss_bound}; loss_cont: {loss_cont}; loss_nav: {loss_nav};")
 		
 	logger.save_state(pde_cnn,optimizer,epoch+1)
