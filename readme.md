@@ -15,6 +15,7 @@ to get this Code to run, you should have installed the following packages:
 - opencv-python
 - statsmodels
 - natsort
+- matplotlib
 
 ... I hope this list is more or less complete
 
