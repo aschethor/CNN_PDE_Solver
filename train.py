@@ -25,7 +25,10 @@ rho = params.rho
 logger = Logger(get_param.get_hyperparam(params),use_csv=False,use_tensorboard=params.log)
 if params.load_latest or params.load_date_time is not None or params.load_index is not None:
 	load_logger = Logger(get_param.get_hyperparam(params),use_csv=False,use_tensorboard=False)
-	params.load_date_time, params.load_index = logger.load_state(pde_cnn,optimizer,params.load_date_time,params.load_index)
+	if params.load_optimizer:
+		params.load_date_time, params.load_index = logger.load_state(pde_cnn,optimizer,params.load_date_time,params.load_index)
+	else:
+		params.load_date_time, params.load_index = logger.load_state(pde_cnn,None,params.load_date_time,params.load_index)
 	params.load_index=int(params.load_index)
 	print(f"loaded: {params.load_date_time}, {params.load_index}")
 params.load_index = 0 if params.load_index is None else params.load_index

@@ -41,6 +41,7 @@ def params():
 	# Load parameters
 	parser.add_argument('--load_date_time', default=None, type=str, help='date_time of run to load (default: None)')
 	parser.add_argument('--load_index', default=None, type=int, help='index of run to load (default: None)')
+	parser.add_argument('--load_optimizer', default=True, type=str2bool, help='load state of optimizer (default: True)')
 	parser.add_argument('--load_latest', default=False, type=str2bool, help='load latest version for training (if True: leave load_date_time and load_index None. default: False)')
 	
 	# parse parameters

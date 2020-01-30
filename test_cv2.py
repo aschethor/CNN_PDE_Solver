@@ -8,6 +8,7 @@ from setups import Dataset
 from derivatives import dx,dy,laplace
 from torch.optim import Adam
 import cv2
+import math
 
 torch.manual_seed(0)
 np.random.seed(1)
@@ -25,10 +26,32 @@ date_time,index = logger.load_state(pde_cnn,None)
 
 print(f"date_time: {date_time}; index: {index}")
 
+def vector2HSV(vector):
+	"""
+	:vector: vector field (size: 2 x height x width)
+	:return: hsv (hue: direction of vector; saturation: 1; value: abs value of vector)
+	"""
+	values = torch.sqrt(torch.sum(torch.pow(vector,2),dim=0)).unsqueeze(0)
+	saturation = torch.ones(values.shape).cuda()
+	norm = vector/(values+0.000001)
+	angles = torch.asin(norm[0])+math.pi/2
+	angles[norm[1]<0] = 2*math.pi-angles[norm[1]<0]
+	hue = angles.unsqueeze(0)/(2*math.pi)
+	hsv = torch.cat([hue,saturation,values])
+	hsv[0] = (hsv[0]*360+100)%360
+	return hsv.permute(1,2,0).cpu().numpy()
+
+
+cv2.namedWindow('color_wheel',cv2.WINDOW_NORMAL)
+vector = torch.cat([torch.arange(-1,1,0.01).unsqueeze(0).unsqueeze(2).repeat(1,1,200),torch.arange(-1,1,0.01).unsqueeze(0).unsqueeze(1).repeat(1,200,1)]).cuda()
+image = vector2HSV(vector)
+image = cv2.cvtColor(image,cv2.COLOR_HSV2BGR)
+cv2.imshow('color_wheel',image)
+
 with torch.no_grad():
 	for epoch in range(20):
 		dataset = Dataset(w,h,1,1)
-		for t in range(5000):
+		for t in range(4000):
 			v_cond,cond_mask,flow_mask,v_old,p_old = toCuda(dataset.ask())
 			
 			v_new,p_new = pde_cnn(v_old,p_old,flow_mask,v_cond,cond_mask)
@@ -48,17 +71,24 @@ with torch.no_grad():
 			cv2.namedWindow('v_x',cv2.WINDOW_NORMAL)
 			cv2.namedWindow('v_y',cv2.WINDOW_NORMAL)
 			cv2.namedWindow('p',cv2.WINDOW_NORMAL)
+			cv2.namedWindow('hsv',cv2.WINDOW_NORMAL)
 			
 			if t%5==0:
 				#loss,loss_bound,loss_cont,loss_nav = toCpu((loss,loss_bound,loss_cont,loss_nav))
 				#print(f"t:{t}: loss: {loss.numpy()}; loss_bound: {loss_bound.numpy()}; loss_cont: {loss_cont.numpy()}; loss_nav: {loss_nav.numpy()};")
 				print(f"t:{t}")
 				v_x,v_y,p = v_new[0,1],v_new[0,0],p_new[0,0]
+				#print(f"min(v_x):{torch.min(v_x)}; max(v_x): {torch.max(v_x)}")
+				#print(f"min(v_y):{torch.min(v_y)}; max(v_y): {torch.max(v_y)}")
 				v_x,v_y,p = v_x-torch.min(v_x),v_y-torch.min(v_y),p-torch.min(p)
 				v_x,v_y,p = v_x/torch.max(v_x),v_y/torch.max(v_y),p/torch.max(p)
 				cv2.imshow('v_x',toCpu(v_x).numpy())	#cv2.imshow('v_x',toCpu(torch.cat([v_x.unsqueeze(2),v_y.unsqueeze(2),torch.zeros([h,w,1]).cuda()],dim=2)).numpy())
 				cv2.imshow('v_y',toCpu(v_y).numpy())
 				cv2.imshow('p',toCpu(p).numpy())
+				vector = v_new[0]
+				image = vector2HSV(vector)
+				image = cv2.cvtColor(image,cv2.COLOR_HSV2BGR)
+				cv2.imshow('hsv',image)
 				
 				cv2.waitKey(1)
 				"""
