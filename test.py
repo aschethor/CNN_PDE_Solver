@@ -20,7 +20,7 @@ plot = True
 
 logger = Logger(get_param.get_hyperparam(params),use_csv=False,use_tensorboard=False)
 pde_cnn = PDE_UNet().cuda()
-date_time,index = logger.load_state(pde_cnn,None)
+date_time,index = logger.load_state(pde_cnn,None,datetime=params.load_date_time,index=params.load_index)
 
 print(f"date_time: {date_time}; index: {index}")
 

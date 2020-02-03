@@ -35,6 +35,12 @@ params.load_index = 0 if params.load_index is None else params.load_index
 
 dataset = Dataset(params.width,params.height,params.batch_size)
 
+def loss_function(x):
+	if params.loss=="square":
+		return torch.pow(x,2)
+	if params.loss=="abs":
+		return torch.abs(x)
+
 for epoch in range(params.load_index,params.n_epochs):
 
 	for i in range(params.n_batches_per_epoch):
@@ -42,14 +48,14 @@ for epoch in range(params.load_index,params.n_epochs):
 		
 		v_new,p_new = pde_cnn(v_old,p_old,flow_mask,v_cond,cond_mask)
 		
-		loss_bound = torch.mean(cond_mask*(v_new-v_cond)**2,dim=(1,2,3))
+		loss_bound = torch.mean(cond_mask*loss_function(v_new-v_cond),dim=(1,2,3))
 		
 		v_new = cond_mask*v_cond+(1-cond_mask)*v_new
 		v = v_new#(v_new+v_old)/2#
 		
-		loss_cont = torch.mean(flow_mask*(dx(v_new[:,1:2])+dy(v_new[:,0:1]))**2,dim=(1,2,3))
-		loss_nav = torch.mean(flow_mask*(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx(p_new)-mu*laplace(v[:,1:2]))**2,dim=(1,2,3))+\
-						 torch.mean(flow_mask*(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy(p_new)-mu*laplace(v[:,0:1]))**2,dim=(1,2,3))#double-check this loss
+		loss_cont = torch.mean(flow_mask*loss_function(dx(v_new[:,1:2])+dy(v_new[:,0:1])),dim=(1,2,3))
+		loss_nav = torch.mean(flow_mask*loss_function(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx(p_new)-mu*laplace(v[:,1:2])),dim=(1,2,3))+\
+						 torch.mean(flow_mask*loss_function(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy(p_new)-mu*laplace(v[:,0:1])),dim=(1,2,3))#double-check this loss
 		loss = params.loss_bound*loss_bound + params.loss_cont*loss_cont + params.loss_nav*loss_nav
 		loss = torch.mean(torch.log(loss))
 		
@@ -67,10 +73,10 @@ for epoch in range(params.load_index,params.n_epochs):
 		loss_nav = toCpu(torch.mean(loss_nav)).numpy()
 		
 		if i%10 == 0:
-			logger.log("loss",loss,epoch*params.n_batches_per_epoch+i)
-			logger.log("loss_bound",loss_bound,epoch*params.n_batches_per_epoch+i)
-			logger.log("loss_cont",loss_cont,epoch*params.n_batches_per_epoch+i)
-			logger.log("loss_nav",loss_nav,epoch*params.n_batches_per_epoch+i)
+			logger.log(f"loss_{params.loss}",loss,epoch*params.n_batches_per_epoch+i)
+			logger.log(f"loss_bound_{params.loss}",loss_bound,epoch*params.n_batches_per_epoch+i)
+			logger.log(f"loss_cont_{params.loss}",loss_cont,epoch*params.n_batches_per_epoch+i)
+			logger.log(f"loss_nav_{params.loss}",loss_nav,epoch*params.n_batches_per_epoch+i)
 		
 		if i%100 == 0:
 			print(f"{epoch}: i:{i}: loss: {loss}; loss_bound: {loss_bound}; loss_cont: {loss_cont}; loss_nav: {loss_nav};")
