@@ -35,15 +35,15 @@ class Dataset:
 		self.cond_mask[index,:,:,0:5]=1
 		self.cond_mask[index,:,:,(self.w-5):self.w]=1
 		
-		if np.random.rand()<0.33333: # magnus effekt
-			flow_v = 3*(np.random.rand()-0.5)*2
+		if np.random.rand()<0.33333: # magnus effekt (1)
+			flow_v = 3*(np.random.rand()-0.5)*2 #flow velocity (1.5)
 			object_y = np.random.randint(self.h//2-10,self.h//2+10)
 			if flow_v>0:
 				object_x = np.random.randint(self.w//4-10,self.w//4+10)
 			else:
 				object_x = np.random.randint(3*self.w//4-10,3*self.w//4+10)
-			object_r = np.random.randint(5,20) # object radius
-			object_w = 3*(np.random.rand()-0.5)*2/object_r # object angular velocity
+			object_r = np.random.randint(5,20) # object radius (15)
+			object_w = 3*(np.random.rand()-0.5)*2/object_r # object angular velocity (3/object_r)
 			
 			# 1. generate mesh 2 x [2r x 2r]
 			y_mesh,x_mesh = torch.meshgrid([torch.arange(-object_r,object_r+1),torch.arange(-object_r,object_r+1)])

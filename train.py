@@ -6,7 +6,7 @@ from torch import nn
 from torch.optim import Adam
 import numpy as np
 import matplotlib.pyplot as plt
-from derivatives import dx,dy,laplace
+from derivatives import dx,dy,laplace,dx_p,dy_p
 from setups import Dataset
 from Logger import Logger,t_step
 from pde_cnn import PDE_UNet,toCuda,toCpu,params
@@ -54,8 +54,8 @@ for epoch in range(params.load_index,params.n_epochs):
 		v = v_new#(v_new+v_old)/2#
 		
 		loss_cont = torch.mean(flow_mask*loss_function(dx(v_new[:,1:2])+dy(v_new[:,0:1])),dim=(1,2,3))
-		loss_nav = torch.mean(flow_mask*loss_function(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx(p_new)-mu*laplace(v[:,1:2])),dim=(1,2,3))+\
-						 torch.mean(flow_mask*loss_function(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy(p_new)-mu*laplace(v[:,0:1])),dim=(1,2,3))#double-check this loss
+		loss_nav = torch.mean(flow_mask*loss_function(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2])),dim=(1,2,3))+\
+						 torch.mean(flow_mask*loss_function(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy_p(p_new)-mu*laplace(v[:,0:1])),dim=(1,2,3))#double-check this loss
 		loss = params.loss_bound*loss_bound + params.loss_cont*loss_cont + params.loss_nav*loss_nav
 		loss = torch.mean(torch.log(loss))
 		
