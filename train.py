@@ -53,7 +53,7 @@ for epoch in range(params.load_index,params.n_epochs):
 		v_new = cond_mask*v_cond+(1-cond_mask)*v_new
 		v = v_new#(v_new+v_old)/2#
 		
-		loss_cont = torch.mean(flow_mask*loss_function(dx_p(v_new[:,1:2])+dy_p(v_new[:,0:1])),dim=(1,2,3))
+		loss_cont = torch.mean(loss_function(dx_p(v_new[:,1:2])+dy_p(v_new[:,0:1]))[:,:,1:-1,1:-1],dim=(1,2,3))
 		loss_nav = torch.mean(flow_mask*loss_function(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2])),dim=(1,2,3))+\
 						 torch.mean(flow_mask*loss_function(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy_p(p_new)-mu*laplace(v[:,0:1])),dim=(1,2,3))#double-check this loss
 		loss = params.loss_bound*loss_bound + params.loss_cont*loss_cont + params.loss_nav*loss_nav
