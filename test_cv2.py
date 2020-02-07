@@ -80,16 +80,16 @@ with torch.no_grad():
 			if np.random.rand()<0.5:
 				flip_lr = True
 				v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(3),cond_mask.flip(3),flow_mask.flip(3),v_old.flip(3),p_old.flip(3)
-				v_cond[:,1,:,:] = -v_cond[:,1,:,:]
-				v_old[:,1,:,:] = -v_old[:,1,:,:]
+				v_cond[:,1,:,:] *=-1
+				v_old[:,1,:,:] *=-1
 			else:
 				flip_lr = False
 			
 			if np.random.rand()<0.5:
 				flip_ud = True
 				v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(2),cond_mask.flip(2),flow_mask.flip(2),v_old.flip(2),p_old.flip(2)
-				v_cond[:,0,:,:] = -v_cond[:,0,:,:]
-				v_old[:,0,:,:] = -v_old[:,0,:,:]
+				v_cond[:,0,:,:] *=-1
+				v_old[:,0,:,:] *=-1
 			else:
 				flip_ud = False
 			
@@ -110,7 +110,7 @@ with torch.no_grad():
 				#loss,loss_bound,loss_cont,loss_nav = toCpu((loss,loss_bound,loss_cont,loss_nav))
 				#print(f"t:{t}: loss: {loss.numpy()}; loss_bound: {loss_bound.numpy()}; loss_cont: {loss_cont.numpy()}; loss_nav: {loss_nav.numpy()};")
 				print(f"t:{t}")
-				time.sleep(1)
+				#time.sleep(1)
 				
 				"""
 				v_x,v_y = v_new[0,1],v_new[0,0]
@@ -132,11 +132,16 @@ with torch.no_grad():
 				image = cv2.cvtColor(image,cv2.COLOR_HSV2BGR)
 				cv2.imshow('hsv',image)
 				
+				vector = v_old[0]
+				image = vector2HSV(vector)
+				image = cv2.cvtColor(image,cv2.COLOR_HSV2BGR)
+				cv2.imshow('loss_cont',image)
+				"""
 				loss_cont = loss_function(dx_p(v_new[:,1:2])+dy_p(v_new[:,0:1]))[0,0,1:-1,1:-1]
 				loss_cont = loss_cont-torch.min(loss_cont)
 				loss_cont = loss_cont/(torch.max(loss_cont))
 				cv2.imshow('loss_cont',toCpu(loss_cont).numpy())
-				
+				"""
 				
 				cv2.waitKey(1)
 				"""
@@ -175,16 +180,16 @@ with torch.no_grad():
 				plt.draw()
 				plt.pause(1)
 				"""
-			if flip_diag:
-				v_new,p_new = v_new.permute(0,1,3,2).flip(1),p_new.permute(0,1,3,2)
+			if flip_ud:
+				v_new,p_new = v_new.flip(2),p_new.flip(2)
+				v_new[:,0,:,:] *= -1
 			
 			if flip_lr:
 				v_new,p_new = v_new.flip(3),p_new.flip(3)
-				v_new[:,1,:,:] = -v_new[:,1,:,:]
+				v_new[:,1,:,:] *= -1
 			
-			if flip_ud:
-				v_new,p_new = v_new.flip(2),p_new.flip(2)
-				v_new[:,0,:,:] = -v_new[:,0,:,:]
+			if flip_diag:
+				v_new,p_new = v_new.permute(0,1,3,2).flip(1),p_new.permute(0,1,3,2)
 			
 			dataset.tell(toCpu(v_new),toCpu(p_new))
 			
