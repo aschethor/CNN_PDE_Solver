@@ -81,6 +81,9 @@ class Dataset:
 			self.v_cond[index,1,(3*self.h//4):(self.h-10),(self.w-5):self.w]=flow_v
 			self.cond_mask[index,:,(self.h//3-2):(self.h//3+2),0:(3*self.w//4)] = 1
 			self.cond_mask[index,:,(2*self.h//3-2):(2*self.h//3+2),(self.w//4):self.w] = 1
+			if np.random.rand()<0.5:
+				self.cond_mask[index] = self.cond_mask[index].flip(1)
+				self.v_cond[index] = self.v_cond[index].flip(1)
 		
 		self.flow_mask[index,:,:,:] = 1-self.cond_mask[index,:,:,:]
 	

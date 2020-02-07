@@ -45,7 +45,28 @@ for epoch in range(params.load_index,params.n_epochs):
 
 	for i in range(params.n_batches_per_epoch):
 		v_cond,cond_mask,flow_mask,v_old,p_old = toCuda(dataset.ask())
+		if np.random.rand()<0.5:
+			flip_diag = True
+			v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.permute(0,1,3,2).flip(1),cond_mask.permute(0,1,3,2),flow_mask.permute(0,1,3,2),v_old.permute(0,1,3,2).flip(1),p_old.permute(0,1,3,2)
+		else:
+			flip_diag = False
 		
+		if np.random.rand()<0.5:
+			flip_lr = True
+			v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(3),cond_mask.flip(3),flow_mask.flip(3),v_old.flip(3),p_old.flip(3)
+			v_cond[:,1,:,:] = -v_cond[:,1,:,:]
+			v_old[:,1,:,:] = -v_old[:,1,:,:]
+		else:
+			flip_lr = False
+		
+		if np.random.rand()<0.5:
+			flip_ud = True
+			v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(2),cond_mask.flip(2),flow_mask.flip(2),v_old.flip(2),p_old.flip(2)
+			v_cond[:,0,:,:] = -v_cond[:,0,:,:]
+			v_old[:,0,:,:] = -v_old[:,0,:,:]
+		else:
+			flip_ud = False
+			
 		v_new,p_new = pde_cnn(v_old,p_old,flow_mask,v_cond,cond_mask)
 		
 		loss_bound = torch.mean(cond_mask*loss_function(v_new-v_cond),dim=(1,2,3))
@@ -65,6 +86,18 @@ for epoch in range(params.load_index,params.n_epochs):
 		optimizer.step()
 	
 		p_new = (p_new-torch.mean(p_new,dim=(1,2,3)).unsqueeze(1).unsqueeze(2).unsqueeze(3))#normalize pressure
+		
+		if flip_diag:
+			v_new,p_new = v_new.permute(0,1,3,2).flip(1),p_new.permute(0,1,3,2)
+		
+		if flip_lr:
+			v_new,p_new = v_new.flip(3),p_new.flip(3)
+			v_new[:,1,:,:] = -v_new[:,1,:,:]
+		
+		if flip_ud:
+			v_new,p_new = v_new.flip(2),p_new.flip(2)
+			v_new[:,0,:,:] = -v_new[:,0,:,:]
+		
 		dataset.tell(toCpu(v_new),toCpu(p_new))
 		
 		loss = toCpu(loss).numpy()

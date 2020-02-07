@@ -29,7 +29,7 @@ def params():
 	parser.add_argument('--loss_nav', default=9000, type=float, help='loss factor for navier stokes equations')
 	parser.add_argument('--lr', default=0.0001, type=float, help='learning rate of optimizer')
 	parser.add_argument('--log', default=True, type=str2bool, help='log models / metrics during training (turn off for debugging)')
-	parser.add_argument('--loss', default='square', type=str, help='loss type to train network (default: square)',choices=['square','abs'])
+	parser.add_argument('--loss', default='square', type=str, help='loss type to train network (default: square)',choices=['square','abs','log_square'])
 
 	# Setup parameters
 	parser.add_argument('--width', default=300, type=int, help='setup width')
