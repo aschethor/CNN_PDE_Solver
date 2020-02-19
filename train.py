@@ -45,25 +45,27 @@ for epoch in range(params.load_index,params.n_epochs):
 
 	for i in range(params.n_batches_per_epoch):
 		v_cond,cond_mask,flow_mask,v_old,p_old = toCuda(dataset.ask())
-		if np.random.rand()<0.5:
+		if np.random.rand()<0:
 			flip_diag = True
 			v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.permute(0,1,3,2).flip(1),cond_mask.permute(0,1,3,2),flow_mask.permute(0,1,3,2),v_old.permute(0,1,3,2).flip(1),p_old.permute(0,1,3,2)
 		else:
 			flip_diag = False
 		
-		if np.random.rand()<0.5:
+		if np.random.rand()<0:
 			flip_lr = True
 			v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(3),cond_mask.flip(3),flow_mask.flip(3),v_old.flip(3),p_old.flip(3)
 			v_cond[:,1,:,:] *=-1
 			v_old[:,1,:,:] *=-1
+			p_old = torch.cat([p_old[:,:,:,-1:],p_old[:,:,:,:-1]],dim=3)
 		else:
 			flip_lr = False
 		
-		if np.random.rand()<0.5:
+		if np.random.rand()<0:
 			flip_ud = True
 			v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(2),cond_mask.flip(2),flow_mask.flip(2),v_old.flip(2),p_old.flip(2)
 			v_cond[:,0,:,:] *=-1
 			v_old[:,0,:,:] *=-1
+			p_old = torch.cat([p_old[:,:,-1:],p_old[:,:,:-1]],dim=2)
 		else:
 			flip_ud = False
 			
@@ -90,10 +92,12 @@ for epoch in range(params.load_index,params.n_epochs):
 		if flip_ud:
 			v_new,p_new = v_new.flip(2),p_new.flip(2)
 			v_new[:,0,:,:] *= -1
+			p_new = torch.cat([p_new[:,:,1:],p_new[:,:,:1]],dim=2)
 		
 		if flip_lr:
 			v_new,p_new = v_new.flip(3),p_new.flip(3)
 			v_new[:,1,:,:] *= -1
+			p_new = torch.cat([p_new[:,:,:,1:],p_new[:,:,:,:1]],dim=3)
 		
 		if flip_diag:
 			v_new,p_new = v_new.permute(0,1,3,2).flip(1),p_new.permute(0,1,3,2)
