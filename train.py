@@ -35,11 +35,15 @@ params.load_index = 0 if params.load_index is None else params.load_index
 
 dataset = Dataset(params.width,params.height,params.batch_size)
 
+eps = 0.00000001
+
 def loss_function(x):
 	if params.loss=="square":
 		return torch.pow(x,2)
 	if params.loss=="abs":
 		return torch.abs(x)
+	if params.loss=="log_square":
+		return torch.log(torch.pow(x,2)+eps)
 
 for epoch in range(params.load_index,params.n_epochs):
 
@@ -80,7 +84,10 @@ for epoch in range(params.load_index,params.n_epochs):
 		loss_nav = torch.mean(flow_mask*loss_function(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2])),dim=(1,2,3))+\
 						 torch.mean(flow_mask*loss_function(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy_p(p_new)-mu*laplace(v[:,0:1])),dim=(1,2,3))#double-check this loss
 		loss = params.loss_bound*loss_bound + params.loss_cont*loss_cont + params.loss_nav*loss_nav
-		loss = torch.mean(torch.log(loss))
+		if params.loss == "log_square":
+			loss = torch.mean(loss)
+		else:
+			loss = torch.mean(torch.log(loss))
 		
 		optimizer.zero_grad()
 		loss.backward()
