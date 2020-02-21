@@ -9,10 +9,11 @@ tell(v,p): tell results for v(t+1),p(t+1) of batch
 #Attention: x/y are swapped (x-dimension=1; y-dimension=0)
 
 class Dataset:
-	def __init__(self,w,h,batch_size=100,dataset_size=1000):
+	def __init__(self,w,h,batch_size=100,dataset_size=1000,average_sequence_length=20000):
 		self.h,self.w = h,w
 		self.batch_size = batch_size
 		self.dataset_size = dataset_size
+		self.average_sequence_length = average_sequence_length
 		self.v = torch.zeros(dataset_size,2,h,w)
 		self.p = torch.zeros(dataset_size,1,h,w)
 		self.v_cond = torch.zeros(dataset_size,2,h,w)# one could also think about p_cond...
@@ -23,6 +24,7 @@ class Dataset:
 			self.reset_env(i)
 		
 		self.t = 0
+		self.i = 0
 	
 	def reset_env(self,index):
 		#CODO: add more different environemts
@@ -96,9 +98,10 @@ class Dataset:
 		self.p[self.indices,:,:,:] = p.detach()
 		
 		self.t += 1
-		if self.t % 20000/self.batch_size == 0:#ca x*batch_size steps until env gets reset
-			i = (self.t/2)%self.dataset_size
-			self.reset_env(int(i))
+		if self.t % (self.average_sequence_length/self.batch_size) == 0:#ca x*batch_size steps until env gets reset
+			#i = (self.t/2)%self.dataset_size#why t/2?
+			self.reset_env(int(self.i))
+			self.i = (self.i+1)%self.dataset_size
 
 
 
