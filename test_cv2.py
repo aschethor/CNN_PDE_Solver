@@ -56,6 +56,9 @@ eps = 0.00000001
 def loss_function(x):
 	if params.loss=="square":
 		return torch.pow(x,2)
+	if params.loss=="exp_square":
+		x = torch.pow(x,2)
+		return torch.exp(x/torch.max(x).detach()*5)
 	if params.loss=="abs":
 		return torch.abs(x)
 	if params.loss=="log_square":
@@ -155,10 +158,19 @@ with torch.no_grad():
 				image = cv2.cvtColor(image,cv2.COLOR_HSV2BGR)
 				cv2.imshow('hsv',image)
 				
-				loss_cont = loss_function(dx_p(v_new[:,1:2])+dy_p(v_new[:,0:1]))[0,0,1:-1,1:-1]
+				loss_cont = loss_function((dx_p(v_new[:,1:2])+dy_p(v_new[:,0:1]))[0,0,1:-1,1:-1])
+				print(f"max(loss_cont):{torch.max(loss_cont)}; mean(loss_cont): {torch.mean(loss_cont)}")
 				loss_cont = loss_cont-torch.min(loss_cont)
 				loss_cont = loss_cont/(torch.max(loss_cont))
 				cv2.imshow('loss_cont',toCpu(loss_cont).numpy())
+				
+				
+				v_new = cond_mask*v_cond+(1-cond_mask)*v_new
+				v = v_new#(v_new+v_old)/2#
+				loss_nav = loss_function(flow_mask*(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2])))+\
+						 loss_function(flow_mask*(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy_p(p_new)-mu*laplace(v[:,0:1])))#double-check this loss
+				print(f"max(loss_nav):{torch.max(loss_nav)}; mean(loss_nav): {torch.mean(loss_nav)}")
+				
 				
 				cv2.waitKey(1)
 				"""
