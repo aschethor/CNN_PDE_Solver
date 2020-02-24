@@ -162,14 +162,19 @@ with torch.no_grad():
 				print(f"max(loss_cont):{torch.max(loss_cont)}; mean(loss_cont): {torch.mean(loss_cont)}")
 				loss_cont = loss_cont-torch.min(loss_cont)
 				loss_cont = loss_cont/(torch.max(loss_cont))
+				print(f"loss_cont.shape: {loss_cont.shape}")
 				cv2.imshow('loss_cont',toCpu(loss_cont).numpy())
 				
 				
 				v_new = cond_mask*v_cond+(1-cond_mask)*v_new
 				v = v_new#(v_new+v_old)/2#
-				loss_nav = loss_function(flow_mask*(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2])))+\
-						 loss_function(flow_mask*(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy_p(p_new)-mu*laplace(v[:,0:1])))#double-check this loss
+				loss_nav = loss_function(flow_mask*(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2])))[0,0]+\
+						 loss_function(flow_mask*(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy_p(p_new)-mu*laplace(v[:,0:1])))[0,0]#double-check this loss
 				print(f"max(loss_nav):{torch.max(loss_nav)}; mean(loss_nav): {torch.mean(loss_nav)}")
+				loss_nav = loss_nav-torch.min(loss_nav)
+				loss_nav = loss_nav/(torch.max(loss_nav))
+				print(f"loss_nav.shape: {loss_nav.shape}")
+				cv2.imshow('loss_nav',toCpu(loss_nav).numpy())
 				
 				
 				cv2.waitKey(1)

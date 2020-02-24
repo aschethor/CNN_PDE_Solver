@@ -34,6 +34,7 @@ def params():
 	parser.add_argument('--log', default=True, type=str2bool, help='log models / metrics during training (turn off for debugging)')
 	parser.add_argument('--flip', default=False, type=str2bool, help='flip training samples randomly during training (default: False)')
 	parser.add_argument('--loss', default='square', type=str, help='loss type to train network (default: square)',choices=['square','abs','log_square','exp_square'])
+	parser.add_argument('--loss_multiplier', default=1, type=float, help='multiply loss / gradients (default: 1)')
 
 	# Setup parameters
 	parser.add_argument('--width', default=300, type=int, help='setup width')
