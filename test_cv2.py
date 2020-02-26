@@ -72,7 +72,7 @@ flip_ud = False
 with torch.no_grad():
 	for epoch in range(20):
 		dataset = Dataset(w,h,1,1)
-		for t in range(5000):
+		for t in range(4000):
 			v_cond,cond_mask,flow_mask,v_old,p_old = toCuda(dataset.ask())
 			if np.random.rand()<0:
 				flip_diag = True

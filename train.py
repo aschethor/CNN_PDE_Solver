@@ -53,7 +53,6 @@ for epoch in range(params.load_index,params.n_epochs):
 	for i in range(params.n_batches_per_epoch):
 		v_cond,cond_mask,flow_mask,v_old,p_old = toCuda(dataset.ask())
 		
-		# TODO: test multiple steps with backprop through time (params.n_time_steps)
 		total_loss = 0
 		
 		for t in range(params.n_time_steps):
@@ -89,7 +88,12 @@ for epoch in range(params.load_index,params.n_epochs):
 			loss_bound = torch.mean(loss_function(cond_mask*(v_new-v_cond)),dim=(1,2,3))
 			
 			v_new = cond_mask*v_cond+(1-cond_mask)*v_new
-			v = v_new#(v_new+v_old)/2#
+			if params.integrator == "explicit":
+				v = v_new
+			if params.integrator == "implicit":
+				v = v_old
+			if params.integrator == "imex":
+				v = (v_new+v_old)/2
 			
 			loss_cont = torch.mean(loss_function(dx_p(v_new[:,1:2])+dy_p(v_new[:,0:1]))[:,:,1:-1,1:-1],dim=(1,2,3))
 			loss_nav = torch.mean(loss_function(flow_mask*(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2]))),dim=(1,2,3))+\
