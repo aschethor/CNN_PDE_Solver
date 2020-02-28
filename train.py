@@ -89,9 +89,9 @@ for epoch in range(params.load_index,params.n_epochs):
 			
 			v_new = cond_mask*v_cond+(1-cond_mask)*v_new
 			if params.integrator == "explicit":
-				v = v_new
-			if params.integrator == "implicit":
 				v = v_old
+			if params.integrator == "implicit":
+				v = v_new
 			if params.integrator == "imex":
 				v = (v_new+v_old)/2
 			
