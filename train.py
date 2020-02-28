@@ -58,13 +58,13 @@ for epoch in range(params.load_index,params.n_epochs):
 		for t in range(params.n_time_steps):
 			
 			if params.flip:
-				if np.random.rand()<0:
+				if np.random.rand()<0.5:
 					flip_diag = True
 					v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.permute(0,1,3,2).flip(1),cond_mask.permute(0,1,3,2),flow_mask.permute(0,1,3,2),v_old.permute(0,1,3,2).flip(1),p_old.permute(0,1,3,2)
 				else:
 					flip_diag = False
 				
-				if np.random.rand()<0:
+				if np.random.rand()<0.5:
 					flip_lr = True
 					v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(3),cond_mask.flip(3),flow_mask.flip(3),v_old.flip(3),p_old.flip(3)
 					v_cond[:,1,:,:] *=-1
@@ -73,7 +73,7 @@ for epoch in range(params.load_index,params.n_epochs):
 				else:
 					flip_lr = False
 				
-				if np.random.rand()<0:
+				if np.random.rand()<0.5:
 					flip_ud = True
 					v_cond,cond_mask,flow_mask,v_old,p_old = v_cond.flip(2),cond_mask.flip(2),flow_mask.flip(2),v_old.flip(2),p_old.flip(2)
 					v_cond[:,0,:,:] *=-1
@@ -129,7 +129,8 @@ for epoch in range(params.load_index,params.n_epochs):
 		optimizer.zero_grad()
 		total_loss = total_loss*params.loss_multiplier
 		total_loss.backward()
-		torch.nn.utils.clip_grad_norm_(pde_cnn.parameters(),1)
+		if params.clip_grad_norm is not None:
+			torch.nn.utils.clip_grad_norm_(pde_cnn.parameters(),params.clip_grad_norm)
 		optimizer.step()
 	
 		loss = toCpu(total_loss).numpy()
