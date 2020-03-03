@@ -70,9 +70,9 @@ flip_ud = False
 
 
 with torch.no_grad():
-	for epoch in range(20):
+	for epoch in range(100):
 		dataset = Dataset(w,h,1,1)
-		for t in range(4000):
+		for t in range(2500):
 			v_cond,cond_mask,flow_mask,v_old,p_old = toCuda(dataset.ask())
 			if np.random.rand()<0:
 				flip_diag = True
@@ -132,7 +132,7 @@ with torch.no_grad():
 			p_new[:,:,-1] = 0
 			p_new[:,:,0] = 0"""
 			
-			if t%50==0:
+			if t%10==0:
 				#loss,loss_bound,loss_cont,loss_nav = toCpu((loss,loss_bound,loss_cont,loss_nav))
 				#print(f"t:{t}: loss: {loss.numpy()}; loss_bound: {loss_bound.numpy()}; loss_cont: {loss_cont.numpy()}; loss_nav: {loss_nav.numpy()};")
 				print(f"t:{t}")
@@ -157,12 +157,14 @@ with torch.no_grad():
 				image = vector2HSV(vector)
 				image = cv2.cvtColor(image,cv2.COLOR_HSV2BGR)
 				cv2.imshow('hsv',image)
+				print(f"max(v):{torch.max(torch.abs(v_new))}; mean(v): {torch.mean(torch.abs(v_new))}")
+				
 				
 				loss_cont = loss_function((dx_p(v_new[:,1:2])+dy_p(v_new[:,0:1]))[0,0,1:-1,1:-1])
-				print(f"max(loss_cont):{torch.max(loss_cont)}; mean(loss_cont): {torch.mean(loss_cont)}")
+				#print(f"max(loss_cont):{torch.max(loss_cont)}; mean(loss_cont): {torch.mean(loss_cont)}")
 				loss_cont = loss_cont-torch.min(loss_cont)
 				loss_cont = loss_cont/(torch.max(loss_cont))
-				print(f"loss_cont.shape: {loss_cont.shape}")
+				#print(f"loss_cont.shape: {loss_cont.shape}")
 				cv2.imshow('loss_cont',toCpu(loss_cont).numpy())
 				
 				
@@ -170,10 +172,10 @@ with torch.no_grad():
 				v = v_new#(v_new+v_old)/2#
 				loss_nav = loss_function(flow_mask*(rho*((v_new[:,1:2]-v_old[:,1:2])+v[:,1:2]*dx(v[:,1:2]))+dx_p(p_new)-mu*laplace(v[:,1:2])))[0,0]+\
 						 loss_function(flow_mask*(rho*((v_new[:,0:1]-v_old[:,0:1])+v[:,0:1]*dy(v[:,0:1]))+dy_p(p_new)-mu*laplace(v[:,0:1])))[0,0]#double-check this loss
-				print(f"max(loss_nav):{torch.max(loss_nav)}; mean(loss_nav): {torch.mean(loss_nav)}")
+				#print(f"max(loss_nav):{torch.max(loss_nav)}; mean(loss_nav): {torch.mean(loss_nav)}")
 				loss_nav = loss_nav-torch.min(loss_nav)
 				loss_nav = loss_nav/(torch.max(loss_nav))
-				print(f"loss_nav.shape: {loss_nav.shape}")
+				#print(f"loss_nav.shape: {loss_nav.shape}")
 				cv2.imshow('loss_nav',toCpu(loss_nav).numpy())
 				
 				
